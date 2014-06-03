@@ -1,0 +1,8 @@
+include(Pkg.dir("MethylUtils", "src","Config.jl"))
+local_store_path =  Pkg.dir("MethylUtils", "testdata","store", "annotation")
+println(LOCAL_STORE_PATH_STATUS())
+SET_LOCAL_STORE_PATH(local_store_path)
+println("1. ", CURRENT_ANNOTATION_ORG_NAMES)
+println("2. ", CURRENT_ANNOTATION_CHR_NAMES)
+println("3. ", CURRENT_ANNOTATION_CHR_INDEX)
+SET_LOCAL_STORE_PATH("nothing")
