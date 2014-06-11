@@ -5,6 +5,26 @@
 using DataFrames
 using IntervalTrees
 
+abstract Feature
+abstract SequenceFeature <: Feature
+
+type SequencePos
+     start::Int32
+     stop::Int32
+
+     function SequencePos( start::String,stop::String)
+        start_int = parseint(start)
+        stop_int  = parseint(stop)
+        start     = int32(start_int)
+        stop      = int32(stop_int)
+        new(start, stop)
+    end
+    function SequencePos(start::Int,stop::Int)
+       new(int32(start),int32(stop))
+    end
+end
+
+#DEPRECATE
 type GenomePos
      chr::Int16
      start::Int32
@@ -30,14 +50,31 @@ type GenomePos
     end
 end
 
-type CytosineCount
+type CytosineCount <: SequenceFeature
+    pos::SequencePos
+    strand::Bool
+    C_count::Int16
+    T_count::Int16
+end
+
+type CytosineMethylation <: SequenceFeature
+     pos::SequencePos
+     strand::Bool
+     mc::Float32
+     hmc::Float32
+     function CytosineMethylation(pos::SequencePos,strand::Bool, mc,hmc)
+       new(pos,strand,float32(mc),float32(hmc))
+    end
+end
+
+type CytosineCount2
     pos::GenomePos
     strand::Bool
     C_count::Int16
     T_count::Int16
 end
 
-type CytosineMethylation
+type CytosineMethylation2
     pos::GenomePos
     strand::Bool
     mc::Float32
@@ -48,11 +85,33 @@ type CytosineMethylation
     end
 end
 
+# This holds features in a dataframe
 type FeatureTable
   description::Dict{ASCIIString,Any}
   dataframe::DataFrame
 end
 
+# This holds Features organised by sequence and ordered by co-ordinate
+# Idea being this might be efficient for holding many features
+type SequenceFeatures
+    description::Dict{ASCIIString,Any}
+    features::Dict{Any,Any}
+end
+
+function add_sequence_feature(sequence_features::SequenceFeatures,  sequence_name::String, feature::SequenceFeature )
+
+     if haskey( sequence_features.features, sequence_name )
+         sequence_feature_vector = sequence_features.features[sequence_name]
+         push!( sequence_feature_vector, feature)
+     else
+         vec = Array(SequenceFeature,0)
+         push!(vec, feature)
+         sequence_features.features[sequence_name] = vec
+     end
+end
+
+# Similar to SequenceFeatures
+# Based on an interval tree
 type FeatureRegions
   description::Dict{ASCIIString,Any}
   regions::Dict{Any,Any}
@@ -137,13 +196,16 @@ function chr_convert_int16( chr)
     end
 end
 
-function organism (FT::FeatureTable)
-   return FT.description["organism"]
-end
 
 function feature_table_to_bed( features::FeatureTable, path, delim="\t")
          # we have to translate the chromosome
-         org = features.organism
+         # org = features.organism
+
+         if isfile(path)
+             println("feature_table_to_bed: $path exists")
+             return 0;
+         end
+
          df = features.dataframe
          nrows = size(df,1)
          iostream = open(path,"w")
@@ -155,7 +217,8 @@ function feature_table_to_bed( features::FeatureTable, path, delim="\t")
             stop   = row[:stop][1]
             strand = row[:strand][1]
             strand = strand ? "+" : "-"
-         	  chr    = CURRENT_ANNOTATION_CHR_NAMES["mm10"][ row[:chr][1] ]
+         	  #chr    = CURRENT_ANNOTATION_CHR_NAMES["mm10"][ row[:chr][1] ]
+            chr    = row[:chr][1]
             line   = join([chr,start,stop,name,0,strand,"\n"],delim)
             print(iostream, line)
             count += 1

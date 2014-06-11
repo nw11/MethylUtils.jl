@@ -4,23 +4,31 @@ module FeatureTest
 
     include(Pkg.dir("MethylUtils", "src","FeatureServices.jl"))
     path = Pkg.dir("MethylUtils", "testdata","moabs-format-1000lines.txt")
-    local_store_path =  Pkg.dir("MethylUtils", "testdata","store", "annotation")
-    cgs = load_moabs(path)
 
-    SET_LOCAL_STORE_PATH(local_store_path)
+    sf = load_moabs_format_as_sequence_features(path)
+    println(sf)
 
-    facts("load_moabs") do
-        @fact length(cgs) => 1000
-    end
+    rf = read_moabs_format_as_sequence_features(path)
 
-    transcripts = ensgene_dataframe("mm10","ensGene1000lines.txt.gz" )
-    println(transcripts)
+    #local_store_path =  Pkg.dir("MethylUtils", "testdata","store", "annotation")
+    #cgs = load_moabs(path)
 
-    facts("ensgene_dataframe") do
-        @fact size(transcripts,1) => 1000
-    end
+    #SET_LOCAL_STORE_PATH(local_store_path)
 
-    genes = ensgene_regions("mm10","ensGene1000lines.txt.gz" )
+    #facts("load_moabs") do
+    #    @fact length(cgs) => 1000
+    #end
+
+    #transcripts = ensgene_dataframe("mm10","ensGene1000lines.txt.gz" )
+    #println(transcripts)
+
+    #facts("ensgene_dataframe") do
+    #    @fact size(transcripts,1) => 1000
+    #end
+
+    #genes = ensgene_regions("mm10","ensGene1000lines.txt.gz" )
+
+
 
     # println( genes )
     # println("length: ", size(genes.dataframe, 1))
@@ -28,5 +36,5 @@ module FeatureTest
     # we want, i.e. the region covering all transcripts under a gene id
 
     # set config path back to nothing
-    SET_LOCAL_STORE_PATH("nothing")
+    #SET_LOCAL_STORE_PATH("nothing")
 end

@@ -1,5 +1,6 @@
 using GSL
 
+
 function expectation(M_B::Int16,u_B::Int16,p_m::Float64,p_h::Float64,betas::Vector{Float64})
 	  log_beta = 0
     for k=0:M_B
@@ -80,6 +81,7 @@ function EM( M_B::Int16, u_B::Int16, m_O::Int16, U_O::Int16, p_m::Float64, p_h::
 	end
 end
 
+#=
 function EM(BS,OX,count)
 
    if count % 10000 == 0
@@ -104,13 +106,55 @@ function EM(BS,OX,count)
         return CytosineMethylation( BS.pos, BS.strand, est_p_m, est_p_h )
    else
        (starting_estimate_p_m, starting_estimate_p_h) = start_point(BS.C_count,BS.T_count,OX.C_count,OX.T_count)
-      (em_p_m,em_p_h) = EM(BS.C_count,BS.T_count,OX.C_count,OX.T_count,starting_estimate_p_m, starting_estimate_p_h)
+       (em_p_m,em_p_h) = EM(BS.C_count,BS.T_count,OX.C_count,OX.T_count,starting_estimate_p_m, starting_estimate_p_h)
        return CytosineMethylation( BS.pos, BS.strand, em_p_m, em_p_h )
     end
 end
 
 function run_mlml(BS,OX)
    println("Start run_mlml")
-   return  pmap( EM, BS, OX, 1:length(BS) )
+   return pmap( EM, BS, OX, 1:length(BS) )
 end
 
+
+function EM( BS::Vector{CytosineCount}, OX::Vector{CytosineCount}, count )
+    if count % 10000 == 0
+           t = TmStruct( time() )
+           t_str = join( [t.hour,t.min,t.sec], ":")
+           println("On $count. current time: ", t_str)
+   end
+   if any( x -> x < 0, (  BS.T_count, BS.C_count, OX.C_count, OX.T_count )  )
+      println( "error negative counts: ", join( [BS.pos.chr,BS.pos.start, BS.T_count, BS.C_count, OX.C_count, OX.T_count], "\t" ) )
+      return CytosineMethylation( BS.pos, BS.strand, 2, 2 )
+   end
+
+   if ! ( BS.pos.start == OX.pos.start )
+     println("Error: BS and OX positions do not match up:  ", join( [BS.pos.start, BS.T_count, BS.C_count, OX.pos.start, OX.C_count, OX.T_count], "\t" ) )
+   end
+
+   est_p_m = ( OX.C_count / (OX.C_count + OX.T_count ))
+   est_p_h = ( BS.C_count / ( BS.T_count + BS.C_count ) ) -  est_p_m
+
+   if( est_p_h >= 0  )
+        return CytosineMethylation( BS.pos, BS.strand, est_p_m, est_p_h )
+   else
+       (starting_estimate_p_m, starting_estimate_p_h) = start_point(BS.C_count,BS.T_count,OX.C_count,OX.T_count)
+       (em_p_m,em_p_h) = EM(BS.C_count,BS.T_count,OX.C_count,OX.T_count,starting_estimate_p_m, starting_estimate_p_h)
+       return CytosineMethylation( BS.pos, BS.strand, em_p_m, em_p_h )
+    end
+end
+
+function run_mlml(BS::SequenceFeature, OX::SequenceFeature)
+    # get list of chr names
+    chrs = keys(BS.features)
+    MethRatios = SequenceFeatures(Dict(),Dict())
+    # go through each chromosome sharing processing
+    for chr in chrs
+       BS_cytosine_counts = BS.features[chr]
+       OX_cytosine_counts = OX.features[chr]
+       cm = pmap(EM, BS_cytosine_counts, OX_cytosine_counts, 1:length(BS_cytosine_counts) )
+       MethRatios.feature[chr] = cm
+    end
+    return MethRatios
+end
+=#

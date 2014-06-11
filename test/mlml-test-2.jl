@@ -38,8 +38,6 @@ function rand_bs_ox_counts(num_cgs, max_cov, min_cov=0)
    return cgs
 end
 
-
-
 function rand_c_counts(prob, coverage_distribution)
     num_reads = sample(coverage_distribution)
     binom = Binomial(num_reads,prob)

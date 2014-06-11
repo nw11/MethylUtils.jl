@@ -31,10 +31,16 @@ module FeaturesTest
    ft = FeatureTable( ["organism"=>"mm10"], df )
 
    # FeatureRegions
-    fr = FeatureRegions(ft)
+   fr = FeatureRegions(ft)
+   println(fr)
+   regions = getoverlaps(fr, 2, 2, 2)
+   println(regions)
 
-    println(fr)
-
-    regions = getoverlaps(fr, 2, 2, 2)
-    println(regions)
+   # SequenceFeatures
+   SF = SequenceFeatures( Dict(), Dict())
+   feature = CytosineCount( SequencePos(100,200),true,15,90)
+   add_sequence_feature( SF, "chr1", feature  )
+   feature = CytosineCount( SequencePos(105,205),true,45,90)
+   add_sequence_feature( SF, "chr1", feature  )
+   println(SF)
 end

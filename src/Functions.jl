@@ -3,47 +3,145 @@ using Compose, Gadfly
 include(Pkg.dir("MethylUtils", "src","Config.jl"))
 include(Pkg.dir("MethylUtils", "src","FeatureServices.jl"))
 include(Pkg.dir("MethylUtils", "src","Features.jl"))
+include(Pkg.dir("MethylUtils", "src","mlml-bs-ox-typed.jl"))
 
-function intersect_bed_with_gene_regions( moabs_bs_path, ensgene_bodies, method="bedtools" ; overwrite=false )
-      genebodies_bed_path = joinpath(LOCAL_STORE_PATH(),ensgene_bodies.description["organism"], "genebodies.bed" )
-      moabs_basename = basename(moabs_bs_path)
-      intersected_bed_path = joinpath(LOCAL_STORE_PATH(),ensgene_bodies.description["organism"], "$moabs_basename.bed")
-
-      if isfile(intersected_bed_path) && ( overwrite == false )
-          println("Intersect file exists, overwrite is false, skipping intersection ...")
-          return intersected_bed_path
-      end
-
-      count = feature_table_to_bed(ensgene_bodies, genebodies_bed_path )
-      cmd = `sort -k1,1 -k2,2n $genebodies_bed_path` |> `bedtools intersect -sorted -wb -a - -b $moabs_bs_path` |> `cut --complement -f1-6` |> "$intersected_bed_path"
-      output = readall(cmd)
-      return intersected_bed_path
-end
-
-function serialize_cytosine_methylation(cg_methylation,org,id)
-     path = joinpath(LOCAL_STORE_PATH(),org,"$id.jld")
-     if(isfile(path))
-         error("file already exists at this path: $path")
+function mc_hmc_calc(BS,count)
+     if count % 10000 == 0
+           t = TmStruct( time() )
+           t_str = join( [t.hour,t.min,t.sec], ":")
+           println("On $count. current time: ", t_str)
      end
-     io = open(path,"w")
-     serialize(io,cg_methylation)
+
+     if any( x -> x < 0, (  BS.T_count, BS.C_count )  )
+         println( "error negative counts: ", join( [BS.pos.start, BS.T_count, BS.C_count], "\t" ) )
+         return CytosineMethylation( BS.pos, BS.strand, 2, 2 )
+     end
+
+     est_p_m_h = ( BS.C_count / ( BS.T_count + BS.C_count ) )
+     return CytosineMethylation( BS.pos, BS.strand, est_p_m_h, 2 )
 end
 
-function deserialize_cytosine_methylation( org,id )
-    path = joinpath(LOCAL_STORE_PATH(),org,"$id.jld")
-    cgs_meth = open( path ) do file
-            deserialize(file)
+function run_mc_hmc_calc(BS)
+    chrs = keys(BS.features)
+    MethRatios = SequenceFeatures(Dict(),Dict())
+    # go through each chromosome sharing processing
+    for chr in chrs
+       BS_cytosine_counts = BS.features[chr]
+       cm = pmap(mc_hmc_calc, BS_cytosine_counts, 1:length(BS_cytosine_counts) )
+       println("run_mc_hmc", cm)
+       MethRatios.features[chr] = cm
     end
-    return cgs_meth
+    return MethRatios
 end
 
-function isserialized(org,id)
-  path = joinpath(LOCAL_STORE_PATH(),org,"$id.jld")
-  if isfile(path)
-     return true
-  else
-     return false
+#=======================#
+
+# MLML Interface
+
+#=======================#
+
+function MLML( BS, OX, count )
+
+   if count % 10000 == 0
+           t = TmStruct( time() )
+           t_str = join( [t.hour,t.min,t.sec], ":")
+           println("On $count. current time: ", t_str)
+   end
+
+   if any( x -> x < 0, (  BS.T_count, BS.C_count, OX.C_count, OX.T_count )  )
+      println( "error negative counts: ", join( [BS.pos.start, BS.T_count, BS.C_count, OX.C_count, OX.T_count], "\t" ) )
+      return CytosineMethylation( BS.pos, BS.strand, 2, 2 )
+   end
+
+   if ! ( BS.pos.start == OX.pos.start )
+     println("Error: BS and OX positions do not match up:  ", join( [BS.pos.start, BS.T_count, BS.C_count, OX.pos.start, OX.C_count, OX.T_count], "\t" ) )
+   end
+
+   est_p_m = ( OX.C_count / (OX.C_count + OX.T_count ))
+   est_p_h = ( BS.C_count / ( BS.T_count + BS.C_count ) ) -  est_p_m
+
+   if( est_p_h >= 0  )
+        return CytosineMethylation( BS.pos, BS.strand, est_p_m, est_p_h )
+   else
+       (starting_estimate_p_m, starting_estimate_p_h) = start_point(BS.C_count,BS.T_count,OX.C_count,OX.T_count)
+       (em_p_m,em_p_h) = EM(BS.C_count,BS.T_count,OX.C_count,OX.T_count,starting_estimate_p_m, starting_estimate_p_h)
+       return CytosineMethylation( BS.pos, BS.strand, em_p_m, em_p_h )
+    end
+end
+
+function run_mlml(BS::SequenceFeatures, OX::SequenceFeatures)
+    # get list of chr names
+    chrs = keys(BS.features)
+    MethRatios = SequenceFeatures(Dict(),Dict())
+    # go through each chromosome sharing processing
+    for chr in chrs
+       BS_cytosine_counts = BS.features[chr]
+       OX_cytosine_counts = OX.features[chr]
+       cm = pmap(MLML, BS_cytosine_counts, OX_cytosine_counts, 1:length(BS_cytosine_counts) )
+       MethRatios.features[chr] = cm
+    end
+    return MethRatios
+end
+
+
+function calculate_methylation_level_and_serialize(BS::SequenceFeatures, OX::SequenceFeatures="",serialize_path = "/tmp/meth.jld")
+  # if serialized versions exist load
+  if isfile(serialize_path)
+        println("Read from serialized $path_serialized")
+        M = open( path_serialized ) do file
+            deserialize(file)
+        end
+        println("Done reading from serialized path $path_serialized")
+        return M
   end
+
+  # if there are BS and OX - run mlml
+  if OX != ""
+      M = run_mc_hmc_calc(BS)
+      return M
+   else
+      M = run_mlml(BS,OX)
+      return M
+   end
+
+
+end
+
+#======================#
+
+# Tiling related
+
+#======================#
+
+function cytosine_methylation_by_gene( cytosine_methylation::SequenceFeatures , gene_regions::FeatureRegions )
+  gene_meth = Array(CytosineMethylation,0)
+	gene_dict = Dict()
+  count = 0
+	chrs = keys(cytosine_methylation.features)
+  for chr in chrs
+      #println("This $chr")
+      for cytosine in cytosine_methylation.features[chr]
+          #println("$cytosine")
+           gene_iter = getoverlaps(gene_regions, chr, cytosine.pos.start, cytosine.pos.stop )
+           #if (length( collect(gene_iter) ) > 0 )
+           #	push!(gene_meth, cytosine)
+           #end
+           count +=1
+           for (idx,gene) in gene_iter
+        	     if ( haskey(gene_dict, gene[:name][1] ) )
+                    push!( gene_dict[ gene[:name][1] ], cytosine)
+               else
+            	    A = Array(CytosineMethylation,0)
+            	    push!(A,cytosine)
+                  gene_dict[ gene[:name][1] ] = A
+               end
+           end
+           if( count % 10000 == 0)
+               println("cytosine_methylation_by_gene processed $count ")
+           end
+      end
+   end
+   return gene_dict
 end
 
 function cytosine_methylation_by_gene( cytosine_methylation, gene_regions::FeatureRegions )
@@ -244,6 +342,86 @@ function interpolateNAN( a::Vector{Float32} )
         end
     end
     return new_a
+end
+
+
+#==========================#
+
+# Utils (own package somewhere)
+
+#==========================#
+
+
+function intersect_files ( file1, file2; output_dir="default", method="bedtools",overwrite=false )
+
+    output_path = ""
+    if output_dir == "default"
+         output_path = "$file1.intersect.bed"
+    else
+         file1_basename = basename(file1)
+         new_file1_basename = "$file1_basename.intersect.bed"
+         output_path = joinpath( output_dir, new_file1_basename  )
+    end
+
+    if isfile(output_path) && overwrite == false
+       println("output path already exists, overwrite option is false, cmd execution skipped")
+       println("output path: $output_path")
+       return output_path
+    end
+
+    if( !( isfile( file1 ) && isfile(file2) ))
+       error("Both files must exist: $file1, $file2")
+    end
+    # sort file2 and place on disk as this is generally the smallest one
+    println("sorting $file2")
+    cmd = `sort -k1,1 -k2,2n $file2` |> "$file2.sorted"
+    println("finished sorting $file2")
+    cmd = `sort -k1,1 -k2,2n $file1` |> `bedtools intersect -sorted -wb -a $file2.sorted -b -` |> `cut --complement -f1-6` |> "$output_path"
+    # remove temporary sorted file
+    output = readall(cmd)
+    return output_path
+ end
+
+function intersect_bed_with_gene_regions( moabs_bs_path, ensgene_bodies, method="bedtools" ; overwrite=false )
+      genebodies_bed_path = joinpath(LOCAL_STORE_PATH(),ensgene_bodies.description["organism"], "genebodies.bed" )
+      moabs_basename = basename(moabs_bs_path)
+      intersected_bed_path = joinpath(LOCAL_STORE_PATH(),ensgene_bodies.description["organism"], "$moabs_basename.bed")
+
+      if isfile(intersected_bed_path) && ( overwrite == false )
+          println("Intersect file exists, overwrite is false, skipping intersection ...")
+          return intersected_bed_path
+      end
+
+      count = feature_table_to_bed(ensgene_bodies, genebodies_bed_path )
+      cmd = `sort -k1,1 -k2,2n $genebodies_bed_path` |> `bedtools intersect -sorted -wb -a - -b $moabs_bs_path` |> `cut --complement -f1-6` |> "$intersected_bed_path"
+      output = readall(cmd)
+      return intersected_bed_path
+end
+
+function serialize_cytosine_methylation(cg_methylation,org,id)
+     path = joinpath(LOCAL_STORE_PATH(),org,"$id.jld")
+     if(isfile(path))
+         error("file already exists at this path: $path")
+     end
+     io = open(path,"w")
+     serialize(io,cg_methylation)
+end
+
+function deserialize_cytosine_methylation( org,id )
+    path = joinpath(LOCAL_STORE_PATH(),org,"$id.jld")
+    cgs_meth = open( path ) do file
+            deserialize(file)
+    end
+    return cgs_meth
+end
+
+function isserialized(org,id)
+  path = joinpath(LOCAL_STORE_PATH(),org,"$id.jld")
+  if isfile(path)
+     return true
+  else
+     return false
+  end
 end
 
 
