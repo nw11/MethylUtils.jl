@@ -372,14 +372,43 @@ function intersect_files ( file1, file2; output_dir="default", method="bedtools"
     if( !( isfile( file1 ) && isfile(file2) ))
        error("Both files must exist: $file1, $file2")
     end
+
+
     # sort file2 and place on disk as this is generally the smallest one
+    zip_reg_exp = r"gz|zip"
     println("sorting $file2")
-    cmd = `sort -k1,1 -k2,2n $file2` |> "$file2.sorted"
+
+    #file  = file2
+    cmd = ``
+    sort1_cmd = `sort -k1,1 -k2,2n`
+    sort2_cmd = `sort -k1,1 -k2,2n $file2`
+    zcat_cmd  = `zcat $file2`
+    if ( ismatch( zip_reg_exp, basename(file2) ) )
+        cmd = zcat_cmd |> sort1_cmd |> "$file2.sorted"   #`sort -k1,1 -k2,2n $file2` |> "$file2.sorted"
+    else
+        cmd = sort2_cmd |> "$file2.sorted"
+    end
+    println("Executing cmd: $cmd")
     output_sort_file2 = readall(cmd)
     println("finished sorting $file2")
-    cmd = `sort -k1,1 -k2,2n $file1` |> `bedtools intersect -sorted -wb -a $file2.sorted -b -` |> `cut --complement -f1-6` |> "$output_path"
-    # remove temporary sorted file
+
+    # sort file1
+    zcat_cmd     = `zcat $file1`
+    sort2_cmd    = `sort -k1,1 -k2,2n $file1`
+    bedtools_cmd = `bedtools intersect -sorted -wb -a $file2.sorted -b -`
+    cut_cmd = `cut --complement -f1-6`
+    cmd = ``
+    if ismatch(zip_reg_exp, basename(file1) )
+         cmd =  zcat_cmd |> sort1_cmd |> bedtools_cmd |> cut_cmd |> "$output_path"
+    else
+         cmd =  sort2_cmd |> bedtools_cmd |> cut_cmd |> "$output_path"
+    end
+    #cmd = cmd_sort |> `bedtools intersect -sorted -wb -a $file2.sorted -b -` |> `cut --complement -f1-6` |> "$output_path"
+    #remove temporary sorted file
+
+    println("Executing cmd: $cmd")
     output = readall(cmd)
+    println("finished intersecting files")
     return output_path
  end
 

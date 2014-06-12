@@ -11,7 +11,7 @@ module FunctionTest1
    println(cytosine_counts)
    cytosine_methylation    =   run_mc_hmc_calc( cytosine_counts )
 
-   ensgene_gene_regions_df =   make_ensgene_gene_regions(file2)
+   ensgene_gene_regions_df =   make_ensgene_gene_regions(file2, "mm10")
    ensgene_gene_regions    =   FeatureRegions(ensgene_gene_regions_df)
    println("Cytosines Methylation")
    println(cytosine_methylation)
@@ -24,10 +24,12 @@ module FunctionTest1
 
   # UTILS
   # TEST INTERSECT BED
+   println("Intersect $file1 and $file2")
+   mm10_ensgene_path = Pkg.dir("MethylUtils", "testdata", "ensGene1000lines.bed")
+   feature_table_to_bed(ensgene_gene_regions_df, mm10_ensgene_path )
+   path = intersect_files(file1, mm10_ensgene_path, overwrite=true)
 
-   path = intersect_files(file1,file2)
-
-
+   println("intersected files path: $path")
  # TEST MLML
  # test that we have order cytosines
 
@@ -44,4 +46,11 @@ module FunctionTest1
   # println(intersect_bed_path)
   # # rm the file for testing
   # SET_LOCAL_STORE_PATH("nothing")
+
+
+
+  #rm files for testing next time
+  # Pkg.dir("MethylUtils", "testdata", "ensGene1000lines.bed")
+  # Pkg.dir("MethylUtils", "testdata", "moabs-format-1000lines.txt.intersect.bed")
+
 end
