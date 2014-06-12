@@ -375,6 +375,7 @@ function intersect_files ( file1, file2; output_dir="default", method="bedtools"
     # sort file2 and place on disk as this is generally the smallest one
     println("sorting $file2")
     cmd = `sort -k1,1 -k2,2n $file2` |> "$file2.sorted"
+    output_sort_file2 = readall(cmd)
     println("finished sorting $file2")
     cmd = `sort -k1,1 -k2,2n $file1` |> `bedtools intersect -sorted -wb -a $file2.sorted -b -` |> `cut --complement -f1-6` |> "$output_path"
     # remove temporary sorted file
