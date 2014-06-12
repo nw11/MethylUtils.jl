@@ -112,19 +112,17 @@ function ensgene_dataframe(ensgene_path)
     return ensgene_df
 end
 
-function make_ensgene_gene_regions( ensgene_path)
-    ensgene_df = ensgene_dataframe( ensgene_path )
+function make_ensgene_gene_regions( ensgene_path, organism)
+     ensgene_df = ensgene_dataframe( ensgene_path )
      gene_dict = Dict{Any,Any}()
      nrows = size(ensgene_df,1)
      for row = 1:nrows
          gene = ensgene_df[row, :]
-         #println(gene)
          gene_name = gene[:name2][1]
          chr       = gene[:chrom][1]
          start     = gene[:txStart][1]
          stop      = gene[:txEnd][1]
          strand    = gene[:strand][1]
-         #println("$gene_name $start $stop")
          if haskey(gene_dict, gene_name) == true
              if gene_dict[gene_name][1] > start
                 gene_dict[gene_name][1] = start
@@ -137,20 +135,17 @@ function make_ensgene_gene_regions( ensgene_path)
          end
      end
 
-     #CURRENT_ANNOTATION_CHR_INDEX = current_annotation_chr_index() # from config
-
      println("The length of the gene_dict is: ", length(gene_dict))
      names  = Array(ASCIIString,0)
      starts = Array(Int32,0)
      stops  = Array(Int32,0)
-     chrs   = Array(ASCIIString,0) # Array(Int16,0)
+     chrs   = Array(ASCIIString,0)
      strands = Array(Bool,0)
      for key in keys(gene_dict)
         push!(names,key)
         push!(starts,  gene_dict[key][1])
         push!(stops,   gene_dict[key][2])
         push!(chrs, gene_dict[key][3])
-        #push!(chrs,    CURRENT_ANNOTATION_CHR_INDEX[organism][ gene_dict[key][3] ])
         if(gene_dict[key][4] == "+")
             push!(strands, true)
         else
