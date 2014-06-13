@@ -28,7 +28,7 @@ function run_mc_hmc_calc(BS)
     for chr in chrs
        BS_cytosine_counts = BS.features[chr]
        cm = pmap(mc_hmc_calc, BS_cytosine_counts, 1:length(BS_cytosine_counts) )
-       println("run_mc_hmc", cm)
+       #println("run_mc_hmc", cm)
        MethRatios.features[chr] = cm
     end
     return MethRatios
@@ -96,15 +96,13 @@ function calculate_methylation_level_and_serialize(BS::SequenceFeatures, OX::Seq
   end
 
   # if there are BS and OX - run mlml
-  if OX != ""
+  if OX == ""
       M = run_mc_hmc_calc(BS)
       return M
    else
       M = run_mlml(BS,OX)
       return M
    end
-
-
 end
 
 #======================#
@@ -372,7 +370,6 @@ function intersect_files ( file1, file2; output_dir="default", method="bedtools"
     if( !( isfile( file1 ) && isfile(file2) ))
        error("Both files must exist: $file1, $file2")
     end
-
 
     # sort file2 and place on disk as this is generally the smallest one
     zip_reg_exp = r"gz|zip"
