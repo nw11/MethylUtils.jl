@@ -144,10 +144,11 @@ function insertintervals!( sequence_regions_dict, chr, start, stop, value::DataF
         try
            interval_tree = IntervalTree{Int64,DataFrame}()
            interval_tree[(start,stop)] = value
-           sequence_regions_dict[chr] = interval_tree
+           sequence_regions_dict[chr]  = interval_tree
         catch e
-           println("Exception start: $start, stop: $stop, value $value ")
-           println(e)
+           println("Exception chr: $chr, start: $start, stop: $stop, value $value ")
+           println( join( "Exception, ", typeof(chr), " ", typeof(start), " ", typeof(stop) ) )
+           error(e)
         end
     end
 end
