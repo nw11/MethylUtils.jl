@@ -147,7 +147,7 @@ function insertintervals!( sequence_regions_dict, chr, start, stop, value::DataF
            sequence_regions_dict[chr]  = interval_tree
         catch e
            println("Exception chr: $chr, start: $start, stop: $stop, value $value ")
-           println( join( "Exception, ", typeof(chr), " ", typeof(start), " ", typeof(stop) ) )
+           println( join( "Exception, ", typeof(chr), " ", typeof(start), " ", typeof(stop), "\t" ) )
            error(e)
         end
     end
