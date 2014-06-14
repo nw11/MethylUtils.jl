@@ -142,7 +142,7 @@ function insertintervals!( sequence_regions_dict, chr, start, stop, value::DataF
         interval_tree[(start,stop)] = value
     else
         try
-           interval_tree = IntervalTree{Int64,DataFrame}()
+           interval_tree = IntervalTree{Int32,DataFrame}()
            interval_tree[(start,stop)] = value
            sequence_regions_dict[chr]  = interval_tree
         catch e
@@ -158,7 +158,7 @@ function insertintervals!( sequence_regions_dict, chr, start, stop, value::ASCII
         interval_tree = sequence_regions_dict[chr]
         interval_tree[(start,stop)] = value
     else
-        interval_tree = IntervalTree{Int64,ASCIIString}()
+        interval_tree = IntervalTree{Int32,ASCIIString}()
         interval_tree[(start,stop)] = value
         sequence_regions_dict[chr] = interval_tree
     end
