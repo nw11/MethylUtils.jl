@@ -18,7 +18,7 @@ export FeatureTable
 export calculate_methylation_level_and_serialize
 
 #FeatureServices
-export make_ensgene_gene_regions
+export make_ensgene_gene_feature_table
 export load_moabs_format_as_sequence_features
 export read_moabs_format_as_sequence_features
 

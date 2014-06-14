@@ -112,7 +112,7 @@ function ensgene_dataframe(ensgene_path)
     return ensgene_df
 end
 
-function make_ensgene_gene_regions( ensgene_path, organism)
+function make_ensgene_gene_feature_table( ensgene_path, organism)
      ensgene_df = ensgene_dataframe( ensgene_path )
      gene_dict = Dict{Any,Any}()
      nrows = size(ensgene_df,1)

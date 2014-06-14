@@ -28,7 +28,6 @@ function run_mc_hmc_calc(BS)
     for chr in chrs
        BS_cytosine_counts = BS.features[chr]
        cm = pmap(mc_hmc_calc, BS_cytosine_counts, 1:length(BS_cytosine_counts) )
-       #println("run_mc_hmc", cm)
        MethRatios.features[chr] = cm
     end
     return MethRatios
@@ -36,7 +35,7 @@ end
 
 #=======================#
 
-# MLML Interface
+# MLML Interface        #
 
 #=======================#
 
@@ -96,13 +95,21 @@ function calculate_methylation_level_and_serialize(BS::SequenceFeatures, OX::Seq
   end
 
   # if there are BS and OX - run mlml
+  M = ""
   if OX == ""
       M = run_mc_hmc_calc(BS)
-      return M
+      #return M
    else
       M = run_mlml(BS,OX)
-      return M
+      #return M
    end
+
+   # serialize M
+   iostream = open( serialize_path,"w")
+    serialize(iostream,cgs)
+   close(iostream)
+   println("serialised to $path_serialized")
+   return M
 end
 
 #======================#
