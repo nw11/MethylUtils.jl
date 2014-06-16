@@ -203,11 +203,8 @@ function chr_convert_int16( chr)
 end
 
 
-function feature_table_to_bed( features::FeatureTable, path, delim="\t")
-         # we have to translate the chromosome
-         # org = features.organism
-
-         if isfile(path)
+function feature_table_to_bed( features::FeatureTable, path, delim="\t"; overwrite=false)
+        if isfile(path) && !overwrite
              println("feature_table_to_bed: $path exists")
              return 0;
          end

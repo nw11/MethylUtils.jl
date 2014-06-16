@@ -10,6 +10,11 @@ module FeatureTest
 
     rf = read_moabs_format_as_sequence_features(path)
 
+    ensgene_path = Pkg.dir("MethylUtils","testdata","ensGene1000lines.txt.gz")
+    ensgene_path = joinpath(homedir(), ".GenomeAnnotations.jl/annotation/mm10/ensGene.txt.gz")
+    FT = make_ensgene_gene_feature_table( ensgene_path, "mm10")
+    FR = FeatureRegions(FT)
+    println( collect(keys(FR.regions)) )
     #local_store_path =  Pkg.dir("MethylUtils", "testdata","store", "annotation")
     #cgs = load_moabs(path)
 

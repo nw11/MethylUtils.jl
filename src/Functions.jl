@@ -106,7 +106,7 @@ function calculate_methylation_level_and_serialize(BS::SequenceFeatures, OX::Seq
 
    # serialize M
    iostream = open( serialize_path,"w")
-    serialize(iostream,cgs)
+    serialize(iostream,M)
    close(iostream)
    println("serialised to $path_serialized")
    return M

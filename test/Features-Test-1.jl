@@ -27,14 +27,27 @@ module FeaturesTest
 
    # FeatureTable
 
-   df = DataFrame(name = ["A","B","C","D"], chr = 1:4, start = 1:4, stop = 1:4 )
+   df = DataFrame(name = ["A","B","C","D"], chr = ["chr1","chr2","chr1", "chr3"], start = 0:3, stop = 0:3 )
    ft = FeatureTable( ["organism"=>"mm10"], df )
 
    # FeatureRegions
    fr = FeatureRegions(ft)
    println(fr)
-   regions = getoverlaps(fr, 2, 2, 2)
+   regions = getoverlaps(fr, "chr2", 2, 2)
    println(regions)
+
+   # load ensGene rows into DF
+   # names_str = [ "bin", "name", "chrom", "strand", "txStart", "txEnd", "cdsStart",
+   #            "cdsEnd", "exonCount", "exonStarts", "exonEnds", "score", "name2",
+   ##           "cdsStartStat", "cdsEndStat", "exonFrames" ]
+   # names = map(symbol, names_str)
+   #DF = readtable( Pkg.dir("MethylUtils","testdata","ensGene1000lines.txt.gz"),
+   #                separator='\t',
+   #                names=names
+   #                )
+   # make a feature table
+   #FT = FeatureTable({"organism" => "superman" }, DF)
+   #FR = FeatureRegions(FT)
 
    # SequenceFeatures
    SF = SequenceFeatures( Dict(), Dict())
