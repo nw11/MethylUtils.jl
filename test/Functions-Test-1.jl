@@ -15,33 +15,35 @@ module FunctionTest1
    ## annotation file ##
    ensgene_gene_regions_ft =   make_ensgene_gene_feature_table(file2, "mm10")
    ensgene_gene_regions    =   FeatureRegions(ensgene_gene_regions_ft)
-
-   ####====####
-
-
-
-
-
-   ###### METHYLATION ESTIMATION FUNCTONS #################
-
-   cytosine_methylation    =   run_mc_hmc_calc( cytosine_counts )
-
-   println("Cytosines Methylation")
-   println(cytosine_methylation)
    println(ensgene_gene_regions_ft)
 
    ####====####
 
 
+   ###### METHYLATION ESTIMATION FUNCTONS #################
+
+   cytosine_methylation    =   run_mc_hmc_calc( cytosine_counts )
+   println("Cytosines Methylation")
+   println(cytosine_methylation)
+   println(typeof(cytosine_methylation))
+
+   ####====####
 
 
+   ####  TEST FILTER ####
+   for key in keys(cytosine_methylation.features)
+       vec = cytosine_methylation.features[key]
+       filter!( x -> x.hmc != 2, vec)
+   end
+
+   println("Cytosine Methylation after filtering")
+   println(cytosine_methylation)
 
    ###### TILING RELATED  ##############
    by_gene = cytosine_methylation_by_gene( cytosine_methylation, ensgene_gene_regions )
    println(by_gene)
 
    ####====####
-
 
 
 
