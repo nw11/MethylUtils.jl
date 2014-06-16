@@ -87,10 +87,10 @@ function calculate_methylation_level_and_serialize(BS::SequenceFeatures, OX::Seq
   # if serialized versions exist load
   if isfile(serialize_path)
         println("Read from serialized $path_serialized")
-        M = open( path_serialized ) do file
+        M = open( serialize_path ) do file
             deserialize(file)
         end
-        println("Done reading from serialized path $path_serialized")
+        println("Done reading from serialized path $serialize_path")
         return M
   end
 
@@ -108,7 +108,7 @@ function calculate_methylation_level_and_serialize(BS::SequenceFeatures, OX::Seq
    iostream = open( serialize_path,"w")
     serialize(iostream,M)
    close(iostream)
-   println("serialised to $path_serialized")
+   println("serialised to $serialize_path")
    return M
 end
 
