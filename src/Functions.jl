@@ -83,7 +83,7 @@ function run_mlml(BS::SequenceFeatures, OX::SequenceFeatures)
 end
 
 
-function calculate_methylation_level_and_serialize(BS::SequenceFeatures, OX::SequenceFeatures="",serialize_path = "/tmp/meth.jld")
+function calculate_methylation_level_and_serialize(BS::SequenceFeatures, OX::SequenceFeatures=nothing,serialize_path = "/tmp/meth.jld")
   # if serialized versions exist load
   if isfile(serialize_path)
         println("Read from serialized $serialize_path")
@@ -96,7 +96,7 @@ function calculate_methylation_level_and_serialize(BS::SequenceFeatures, OX::Seq
 
   # if there are BS and OX - run mlml
   M = ""
-  if OX == ""
+  if OX == nothing
       M = run_mc_hmc_calc(BS)
       #return M
    else
