@@ -9,6 +9,9 @@ export load_bis_seq_file
 export intersect_files
 export run_mlml
 export cytosine_methylation_by_gene
+export tile_genes
+export order_matrix
+export plot_matrix
 
 #Features
 export feature_table_to_bed
